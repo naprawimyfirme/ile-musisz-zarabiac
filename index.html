@@ -2,365 +2,725 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <title>Kalkulator dochodu netto</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalkulator Stawki Roboczogodziny</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    /* Ogólne style strony */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #8e42ff;
+      --accent-hover: #363636;
+      --text: #333;
+      --text-muted: #666;
+      --border: #ccc;
+      --bg: #ffffff;
+      --form-bg: #f0f0f0;
+      --radius: 4px;
+      --green: #2e7d32;
+      --yellow: #7c5c00;
+      --red: #b71c1c;
+    }
+
     body {
       font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #ffffff;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.6;
     }
-    section {
-      padding: 40px 0;
-    }
+
     .container {
       max-width: 1280px;
       margin: 0 auto;
-      padding: 0 15px;
+      padding: 40px 15px 60px;
     }
-    .t68 {
-      background-color: #fff;
-      padding: 40px 0;
-    }
-    .t279 {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: flex-start;
-      justify-content: center;
-    }
-    .t69 {
-      flex: 1;
-      max-width: 1280px;
-    }
-    .t73 {
+
+    /* HEADER */
+    .page-header { text-align: center; margin-bottom: 24px; }
+    .page-header h2 {
       font-size: 2rem;
-      margin-bottom: 20px;
-      color: #333;
-      text-align: center;
+      font-weight: bold;
+      color: var(--text);
+      margin-bottom: 6px;
     }
-    .dh-btn-primary {
-      background-color: #8e42ff;
-      color: #fff;
-      padding: 10px 20px;
-      text-decoration: none;
-      border-radius: 4px;
-      transition: background-color 0.3s ease;
-      display: inline-block;
-      margin-top: 15px;
-      border: none;
-      cursor: pointer;
-    }
-    .dh-btn-primary:hover {
-      background-color: #363636;
-    }
+    .page-header p { color: var(--text-muted); font-size: 0.9rem; }
+
+    /* FORM */
     .calculator-form {
-      background-color: #f0f0f0;
+      background: var(--form-bg);
       padding: 20px;
       border-radius: 8px;
       margin-bottom: 20px;
     }
-    .calculator-form .form-group {
-      margin-bottom: 20px;
-    }
-    .calculator-form label {
-      display: block;
-      margin-bottom: 10px;
+    .form-row { margin-bottom: 20px; }
+    .form-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       font-size: 1.1rem;
-      color: #333;
+      color: var(--text);
+      margin-bottom: 10px;
     }
-    .calculator-form input, 
-    .calculator-form select {
+    .form-control {
       width: 100%;
       padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: inherit;
       font-size: 1rem;
+      color: var(--text);
+      background: #fff;
     }
-    /* Układ dla sekcji składników i wykresu – ustawienie w kolumnie */
-    #componentsChartSection {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-top: 20px;
-      width: 100%;
-    }
-    #componentsList {
-      width: 100%;
-    }
-    #componentsList p {
-      margin: 5px 0;
-    }
-    #componentsList span.color-box {
-      display: inline-block;
-      width: 15px;
-      height: 15px;
-      margin-right: 5px;
-    }
-    #chartWrapper {
-      width: 130px;
-      height: 130px;
-      margin-top: 20px;
+    .form-control:focus { outline: none; border-color: #888; }
+
+    /* TOOLTIP */
+    .tip { position: relative; display: inline-flex; cursor: help; }
+    .tip-icon {
+      width: 16px; height: 16px;
+      background: #ccc; color: #555;
+      border-radius: 50%;
+      font-size: 0.65rem; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
-    /* Upewniamy się, że canvas wypełnia cały kontener */
-    #chartWrapper canvas {
-      width: 100% !important;
-      height: 100% !important;
+    .tip:hover .tip-icon { background: #888; color: #fff; }
+    .tip-box {
+      display: none;
+      position: absolute;
+      left: 22px; top: 50%; transform: translateY(-50%);
+      width: 220px;
+      background: #333; color: #f0f0f0;
+      font-size: 0.78rem; font-weight: 400; line-height: 1.5;
+      padding: 9px 12px; border-radius: 4px;
+      z-index: 300;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      pointer-events: none;
+    }
+    .tip:hover .tip-box { display: block; }
+
+    /* BUTTON */
+    .dh-btn-primary {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: var(--accent); color: #fff;
+      padding: 10px 20px; border: none;
+      border-radius: var(--radius);
+      font-family: inherit; font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      margin-top: 15px;
+    }
+    .dh-btn-primary:hover { background: var(--accent-hover); }
+
+    /* RESULTS */
+    .result-section { margin-bottom: 24px; }
+    .result-section h3 { font-size: 1.2rem; margin-bottom: 12px; }
+
+    /* METRIC ROW */
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .metric-box {
+      background: #f5f5f5; border: 1px solid #ddd;
+      border-radius: 6px; padding: 14px 10px; text-align: center;
+    }
+    .metric-box.highlight { background: var(--accent); border-color: var(--accent); }
+    .metric-label { font-size: 0.75rem; color: var(--text-muted); line-height: 1.3; margin-bottom: 6px; }
+    .metric-box.highlight .metric-label { color: rgba(255,255,255,0.8); }
+    .metric-value { font-size: 1.35rem; font-weight: 700; color: var(--text); }
+    .metric-box.highlight .metric-value { color: #fff; }
+    .metric-unit { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+    .metric-box.highlight .metric-unit { color: rgba(255,255,255,0.7); }
+
+    /* SKŁADNIKI */
+    .comp-layout { display: flex; gap: 20px; align-items: flex-start; }
+    .comp-table-wrap { flex: 1; }
+    .comp-table { width: 100%; border-collapse: collapse; }
+    .comp-table tr { border-bottom: 1px solid #e0e0e0; }
+    .comp-table tr:last-child { border-bottom: none; }
+    .comp-table td { padding: 8px 0; vertical-align: middle; font-size: 0.9rem; }
+    .comp-table td:last-child { text-align: right; font-weight: 600; white-space: nowrap; }
+    .comp-name { display: flex; align-items: center; gap: 8px; }
+    .comp-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .pie-wrap { width: 130px; height: 130px; flex-shrink: 0; }
+
+    /* ALERT */
+    .alert {
+      padding: 10px 14px; border-radius: 4px;
+      font-size: 0.88rem; margin-top: 12px;
+      display: flex; align-items: flex-start; gap: 8px;
+    }
+    .alert-green  { background: #f1f8f1; border-left: 3px solid #4caf50; color: var(--green); }
+    .alert-yellow { background: #fffde7; border-left: 3px solid #ffc107; color: var(--yellow); }
+    .alert-red    { background: #fff5f5; border-left: 3px solid #f44336; color: var(--red); }
+
+    .section-title {
+      font-size: 0.82rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 12px; margin-top: 20px;
+    }
+
+    /* INSIGHT BOX */
+    .insight-box {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: #f5f0ff;
+      border-left: 4px solid var(--accent);
+      border-radius: 4px;
+      padding: 14px 16px;
+      font-size: 0.92rem;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .insight-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+
+    /* BREAK-EVEN BOX */
+    .breakeven-box {
+      background: #f5f5f5;
+      border-radius: 4px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+    }
+    .breakeven-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .breakeven-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .breakeven-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* WYNIK HEADER */
+    .wynik-header {
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--text);
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    /* GŁÓWNA CENA BRUTTO */
+    .wynik-brutto {
+      background: #f5f5f5;
+      color: var(--text);
+      border-radius: 6px;
+      padding: 18px 24px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .wynik-brutto-label {
+      font-size: 1.6rem;
+      font-weight: normal;
+      color: var(--text);
+    }
+    .wynik-brutto-value {
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+    }
+
+    /* FORMULA ROW */
+    .formula-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      background: #f5f5f5;
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+    }
+    .formula-item {
+      text-align: center;
+      min-width: 70px;
+    }
+    .formula-value {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .formula-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      line-height: 1.3;
+      margin-top: 3px;
+    }
+    .formula-item--accent .formula-value { color: var(--accent); }
+    .formula-item--vat .formula-value    { color: var(--text); }
+    .formula-item--brutto .formula-value { color: var(--accent); font-size: 1.05rem; }
+    .formula-op {
+      font-size: 1.2rem;
+      color: #bbb;
+      font-weight: 300;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 580px) {
+      .metric-row { grid-template-columns: 1fr 1fr; }
+      .metric-row .metric-box:first-child { grid-column: 1/-1; }
+      .comp-layout { flex-direction: column; }
+      .pie-wrap { width: 120px; height: 120px; margin: 0 auto; }
     }
   </style>
 </head>
 <body>
-  <section class="t68">
-    <div class="container t279">
-      <div class="t69">
-        <h2 class="t73">Dochód netto firmy - Kalkulator</h2>
-        <div class="calculator-form">
-          <form id="calculatorForm">
-            <!-- Nowe pole: Dochód netto, który chcesz osiągać -->
-            <div class="form-group">
-              <label for="desiredNet">Ile chcesz zarabiać miesięcznie na rękę? (zł/miesiąc):</label>
-              <input type="number" id="desiredNet" name="desiredNet" step="0.01">
-            </div>
-            <div class="form-group">
-              <label for="numOperationalEmployees">Liczba pracowników produktywnych (wykonujących pracę)</label>
-              <input type="number" id="numOperationalEmployees" name="numOperationalEmployees" step="1">
-            </div>
-            <div class="form-group">
-              <label for="avgHours">Średnia liczba godzin pracy na osobę / miesiąc</label>
-              <input type="number" id="avgHours" name="avgHours" step="0.01">
-            </div>
-            <div class="form-group">
-              <label for="fixedCosts">Uśrednione koszty stałe firmy w skali miesiąca</label>
-              <input type="number" id="fixedCosts" name="fixedCosts" step="0.01">
-            </div>
-            <div class="form-group">
-              <label for="taxMethod">Forma opodatkowania działalności</label>
-              <select id="taxMethod" name="taxMethod" onchange="toggleFields()">
-                <option value="liniowy">Podatek liniowy</option>
-                <option value="ryczalt">Ryczałt od przychodów ewidencjonowanych</option>
-              </select>
-            </div>
-            <!-- Pola specyficzne dla ryczałtu -->
-            <div id="rycInput" class="hidden" style="display:none;">
-              <div class="form-group">
-                <label for="rycRate">Stawka ryczałtu:</label>
-                <select id="rycRate" name="rycRate">
-                  <option value="0.17">17%</option>
-                  <option value="0.15">15%</option>
-                  <option value="0.085">8,5%</option>
-                  <option value="0.055">5,5%</option>
-                  <option value="0.03">3%</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="rycSalary">Przeciętne wynagrodzenie (do obliczenia składki zdrowotnej):</label>
-                <input type="number" id="rycSalary" name="rycSalary" step="0.01" value="8482.47">
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="vatRate">Stawka VAT (%)</label>
-              <input type="number" id="vatRate" name="vatRate" step="0.01">
-            </div>
-            <button type="button" class="dh-btn-primary" onclick="calculate()">Oblicz</button>
-          </form>
+<div class="container">
+
+  <div class="page-header">
+    <h2>Kalkulator Stawki Roboczogodziny</h2>
+    <p>Podaj ile chcesz zarabiać — kalkulator wyliczy jaką stawkę musisz mieć</p>
+  </div>
+
+  <div class="calculator-form">
+    <form id="calcForm">
+
+      <!-- Cel: ile chcesz zarabiać -->
+      <div class="form-row">
+        <div class="form-label">
+          Ile chcesz zarabiać miesięcznie na rękę (zł netto)
+          <span class="tip">
+            <span class="tip-icon">?</span>
+            <span class="tip-box">Twój zysk netto — kwota, która zostaje po opłaceniu wszystkich kosztów firmy, podatku dochodowego i składki zdrowotnej. To Twoje realne wynagrodzenie.</span>
+          </span>
         </div>
-        <!-- Kontener na wyniki obliczeń -->
-        <div id="results"></div>
-        <!-- Scalone sekcje: składniki kosztów + wykres -->
-        <div id="mergedSection"></div>
+        <input type="number" id="desiredNet" class="form-control" placeholder="np. 10 000" step="1" min="0">
       </div>
-    </div>
-  </section>
 
-  <script>
-    var pieChart; // globalna zmienna dla wykresu
+      <!-- Forma opodatkowania -->
+      <div class="form-row">
+        <div class="form-label">
+          Forma opodatkowania
+          <span class="tip">
+            <span class="tip-icon">?</span>
+            <span class="tip-box">Wybierz formę opodatkowania swojej działalności. Wpływa na sposób liczenia podatku i składki zdrowotnej.</span>
+          </span>
+        </div>
+        <select id="taxMethod" class="form-control" onchange="toggleFields()">
+          <option value="liniowy">Podatek liniowy (19%)</option>
+          <option value="skala">Skala podatkowa (12% / 32%)</option>
+          <option value="ryczalt">Ryczałt od przychodów ewidencjonowanych</option>
+        </select>
+      </div>
 
-    function toggleFields() {
-      var taxMethod = document.getElementById('taxMethod').value;
-      if (taxMethod === "liniowy") {
-        document.getElementById('rycInput').style.display = "none";
-      } else if (taxMethod === "ryczalt") {
-        document.getElementById('rycInput').style.display = "block";
+      <!-- Koszty firmy -->
+      <div class="form-row">
+        <div class="form-label">
+          Całkowite koszty firmy (zł/miesiąc)
+          <span class="tip">
+            <span class="tip-icon">?</span>
+            <span class="tip-box">Suma wszystkich miesięcznych kosztów firmy: wynagrodzenia pracowników (brutto + ZUS pracodawcy), własne składki ZUS społeczny właściciela, materiały, narzędzia, abonamenty, leasing, telefon, paliwo itp. Składka zdrowotna jest liczona osobno od dochodu – nie wpisuj jej tutaj.</span>
+          </span>
+        </div>
+        <input type="number" id="fixedCosts" class="form-control" placeholder="np. 15 000" step="1" min="0">
+      </div>
+
+      <!-- Pracownicy -->
+      <div class="form-row">
+        <div class="form-label">
+          Liczba pracowników wykonujących usługi
+          <span class="tip">
+            <span class="tip-icon">?</span>
+            <span class="tip-box">Osoby bezpośrednio realizujące zlecenia (włącznie z właścicielem). Nie wliczaj pracowników biurowych czy administracyjnych.</span>
+          </span>
+        </div>
+        <input type="number" id="numEmployees" class="form-control" placeholder="np. 3" step="1" min="1">
+      </div>
+
+      <!-- Roboczogodziny -->
+      <div class="form-row">
+        <div class="form-label">
+          Średnia liczba roboczogodzin / pracownik / miesiąc
+          <span class="tip">
+            <span class="tip-icon">?</span>
+            <span class="tip-box">Ile godzin faktycznie wykonywania usług ma miesięcznie jeden pracownik? Pomiń czas dojazdów, narad, przestojów. Typowo 120–160 h przy pełnym etacie.</span>
+          </span>
+        </div>
+        <input type="number" id="avgHours" class="form-control" placeholder="np. 140" step="1" min="1">
+      </div>
+
+      <!-- Pola ryczałtu -->
+      <div id="rycFields" style="display:none;">
+        <div class="form-row">
+          <div class="form-label">
+            Stawka ryczałtu
+            <span class="tip">
+              <span class="tip-icon">?</span>
+              <span class="tip-box">Stawka zależy od PKD Twojej działalności. Usługi ogrodnicze i budowlane często objęte stawką 5,5%. Sprawdź dokładnie swoją stawkę u księgowej.</span>
+            </span>
+          </div>
+          <select id="rycRate" class="form-control">
+            <option value="0.17">17%</option>
+            <option value="0.15">15%</option>
+            <option value="0.12">12%</option>
+            <option value="0.085">8,5%</option>
+            <option value="0.055" selected>5,5% (np. usługi ogrodnicze)</option>
+            <option value="0.03">3%</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-label">
+            Przeciętne wynagrodzenie (podstawa składki zdrowotnej)
+            <span class="tip">
+              <span class="tip-icon">?</span>
+              <span class="tip-box">Kwota ogłaszana przez GUS co kwartał. Służy do wyliczenia ryczałtowej składki zdrowotnej. Sprawdź aktualną wartość na stronie ZUS.</span>
+            </span>
+          </div>
+          <input type="number" id="rycSalary" class="form-control" value="8482.47" step="0.01">
+        </div>
+      </div>
+
+      <!-- VAT -->
+      <div class="form-row">
+        <div class="form-label">
+          Stawka VAT (%)
+          <span class="tip">
+            <span class="tip-icon">?</span>
+            <span class="tip-box">Standardowo 23%. Dla części usług może być 8% lub 0%. Wpisz 0 jeśli jesteś zwolniony z VAT lub chcesz analizować tylko cenę netto.</span>
+          </span>
+        </div>
+        <input type="number" id="vatRate" class="form-control" placeholder="np. 23" step="0.1" min="0" value="23">
+      </div>
+
+      <div style="margin-top:6px;">
+        <button type="button" class="dh-btn-primary" onclick="calculate()">Oblicz wymaganą stawkę</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="results"></div>
+
+</div>
+
+<script>
+  var pieChart = null;
+
+  function toggleFields() {
+    var tm = document.getElementById('taxMethod').value;
+    document.getElementById('rycFields').style.display = (tm === 'ryczalt') ? 'block' : 'none';
+  }
+
+  function fmt(n) {
+    return n.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' zł';
+  }
+  function fmtN(n) {
+    return n.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  // -------------------------------------------------------
+  // GŁÓWNA LOGIKA: odwrotna — z żądanego zysku liczy stawkę
+  // -------------------------------------------------------
+  function solveRevenue(taxMethod, desiredNet, fixedCosts, rycRate, rycSalary) {
+    var minHealthBase = 4666;  // min. wynagrodzenie 2025
+    var minHealth     = 0.09 * minHealthBase; // 419.94
+
+    if (taxMethod === 'liniowy') {
+      // Dochód A = fixedCosts × narzut% / 100
+      // net = A - 0.19A - max(0.049A, minHealth)
+      //
+      // Przypadek 1: 0.049A >= minHealth → A >= minHealth/0.049 = 8570
+      //   net = A(1 - 0.19 - 0.049) = A × 0.761 → A = net/0.761
+      var A1 = desiredNet / 0.761;
+      if (0.049 * A1 >= minHealth) {
+        var revenue1 = fixedCosts + A1;
+        return {
+          revenue: revenue1,
+          income:  A1,
+          tax:     0.19 * A1,
+          health:  0.049 * A1
+        };
       }
+      // Przypadek 2: min floor applies
+      //   net = A(1 - 0.19) - minHealth = A × 0.81 - minHealth
+      //   A = (net + minHealth) / 0.81
+      var A2 = (desiredNet + minHealth) / 0.81;
+      return {
+        revenue: fixedCosts + A2,
+        income:  A2,
+        tax:     0.19 * A2,
+        health:  minHealth
+      };
+
+    } else if (taxMethod === 'skala') {
+      // Szukamy A (miesięczny dochód) przez sprawdzenie kolejnych progów
+      // Próg 0: dochód roczny ≤ 30k → podatek = 0
+      //   net = A - max(0.09A, minHealth)
+      //   Jeśli A >= minHealthBase (4666): net = 0.91A → A = net/0.91; check A*12 ≤ 30000
+      //   Jeśli A < 4666: net = A - minHealth → A = net + minHealth; check A*12 ≤ 30000
+      var Ap0a = desiredNet / 0.91;
+      if (Ap0a >= minHealthBase && Ap0a * 12 <= 30000) {
+        return { revenue: fixedCosts + Ap0a, income: Ap0a, tax: 0, health: 0.09 * Ap0a };
+      }
+      var Ap0b = desiredNet + minHealth;
+      if (Ap0b < minHealthBase && Ap0b * 12 <= 30000) {
+        return { revenue: fixedCosts + Ap0b, income: Ap0b, tax: 0, health: minHealth };
+      }
+
+      // Próg 1: 30k < roczny ≤ 120k
+      //   tax_mc = A*0.12 - 300 (= (A*12-30000)*0.12/12)
+      //   Jeśli A >= 4666: net = A - (0.12A-300) - 0.09A = 0.79A+300 → A=(net-300)/0.79
+      var Ap1a = (desiredNet - 300) / 0.79;
+      if (Ap1a >= minHealthBase && Ap1a * 12 > 30000 && Ap1a * 12 <= 120000) {
+        var tax1a = Ap1a * 0.12 - 300;
+        return { revenue: fixedCosts + Ap1a, income: Ap1a, tax: tax1a, health: 0.09 * Ap1a };
+      }
+      //   Jeśli A < 4666: net = A - (0.12A-300) - minHealth = 0.88A+300-minHealth
+      //   A = (net - 300 + minHealth) / 0.88
+      var Ap1b = (desiredNet - 300 + minHealth) / 0.88;
+      if (Ap1b < minHealthBase && Ap1b * 12 > 30000 && Ap1b * 12 <= 120000) {
+        var tax1b = Ap1b * 0.12 - 300;
+        return { revenue: fixedCosts + Ap1b, income: Ap1b, tax: tax1b, health: minHealth };
+      }
+
+      // Próg 2: roczny > 120k
+      //   tax_mc = 0.32A - 2300 (= 900 + (A*0.32-3200))
+      //   A >> 4666, health = 0.09A
+      //   net = A - (0.32A-2300) - 0.09A = 0.59A + 2300 → A=(net-2300)/0.59
+      var Ap2 = (desiredNet - 2300) / 0.59;
+      if (Ap2 > 0) {
+        var tax2 = 0.32 * Ap2 - 2300;
+        if (tax2 < 0) tax2 = 0;
+        var health2 = Math.max(0.09 * Ap2, minHealth);
+        return { revenue: fixedCosts + Ap2, income: Ap2, tax: tax2, health: health2 };
+      }
+
+      // Fallback: próg 1 bez sprawdzenia granic (edge case)
+      var AfallB = (desiredNet - 300 + minHealth) / 0.88;
+      var taxFB = AfallB * 0.12 - 300;
+      return { revenue: fixedCosts + AfallB, income: AfallB, tax: Math.max(0,taxFB), health: minHealth };
+
+    } else {
+      // RYCZAŁT
+      // net = revenue - fixedCosts - rycRate*revenue - health
+      //     = revenue*(1-rycRate) - fixedCosts - health
+      // revenue = (net + fixedCosts + health) / (1-rycRate)
+      var rycMult = 1 - rycRate;
+
+      // Próg 1: annualRev ≤ 60k → health = 0.09*0.60*rycSalary
+      var h1 = 0.09 * 0.60 * rycSalary;
+      var rev1 = (desiredNet + fixedCosts + h1) / rycMult;
+      if (rev1 * 12 <= 60000) {
+        return { revenue: rev1, income: rev1 - fixedCosts, tax: rycRate * rev1, health: h1 };
+      }
+
+      // Próg 2: annualRev 60k–300k → health = 0.09*1.00*rycSalary
+      var h2 = 0.09 * 1.00 * rycSalary;
+      var rev2 = (desiredNet + fixedCosts + h2) / rycMult;
+      if (rev2 * 12 <= 300000) {
+        return { revenue: rev2, income: rev2 - fixedCosts, tax: rycRate * rev2, health: h2 };
+      }
+
+      // Próg 3: annualRev > 300k → health = 0.09*1.80*rycSalary
+      var h3 = 0.09 * 1.80 * rycSalary;
+      var rev3 = (desiredNet + fixedCosts + h3) / rycMult;
+      return { revenue: rev3, income: rev3 - fixedCosts, tax: rycRate * rev3, health: h3 };
+    }
+  }
+
+  function calculate() {
+    var taxMethod  = document.getElementById('taxMethod').value;
+    var desiredNet = parseFloat(document.getElementById('desiredNet').value) || 0;
+    var fixedCosts = parseFloat(document.getElementById('fixedCosts').value) || 0;
+    var numEmp     = parseFloat(document.getElementById('numEmployees').value) || 0;
+    var avgHours   = parseFloat(document.getElementById('avgHours').value) || 0;
+    var vatRate    = parseFloat(document.getElementById('vatRate').value) || 0;
+
+    if (desiredNet <= 0) { alert('Podaj kwotę którą chcesz zarabiać miesięcznie.'); return; }
+    if (fixedCosts <= 0) { alert('Podaj koszty firmy.'); return; }
+    if (numEmp <= 0 || avgHours <= 0) { alert('Podaj liczbę pracowników i roboczogodzin.'); return; }
+
+    var rycRate   = parseFloat(document.getElementById('rycRate').value) || 0;
+    var rycSalary = parseFloat(document.getElementById('rycSalary').value) || 8482.47;
+
+    var totalRG = numEmp * avgHours;
+
+    var sol = solveRevenue(taxMethod, desiredNet, fixedCosts, rycRate, rycSalary);
+    var totalRevenue = sol.revenue;
+    var tax_total    = sol.tax;
+    var health_total = sol.health;
+
+    var revenuePerRG = totalRevenue / totalRG;
+    var baseRGCost   = fixedCosts / totalRG;
+    var taxPerRG     = tax_total / totalRG;
+    var healthPerRG  = health_total / totalRG;
+    var profitPerRG  = desiredNet / totalRG;
+    var vatValue     = revenuePerRG * (vatRate / 100);
+    var grossRGCost  = revenuePerRG + vatValue;
+    var marginPct    = ((totalRevenue / fixedCosts) - 1) * 100;
+    var profitability = (profitPerRG / revenuePerRG) * 100;
+
+    // KOLORY
+    var C = {
+      costs:  '#e05c6e',
+      tax:    '#c0392b',
+      health: '#f1948a',
+      vat:    '#f5b7b1',
+      profit: '#00e676'
+    };
+
+    // Pie data
+    var pieLabels = ['Koszty działalności', 'Podatek dochodowy', 'Składka zdrowotna'];
+    var pieVals   = [baseRGCost, taxPerRG, healthPerRG];
+    var pieColors = [C.costs, C.tax, C.health];
+    if (vatValue > 0) { pieLabels.push('VAT'); pieVals.push(vatValue); pieColors.push(C.vat); }
+    pieLabels.push('Zysk netto'); pieVals.push(profitPerRG); pieColors.push(C.profit);
+
+    // Info o skali podatkowej
+    var skalaNote = '';
+    if (taxMethod === 'skala') {
+      var annInc = sol.income * 12;
+      var bracket, bracketColor;
+      if (annInc <= 30000) {
+        bracket = 'Dochód roczny <strong>' + fmt(annInc) + '</strong> — mieści się w kwocie wolnej od podatku. Podatek = 0 zł.';
+        bracketColor = 'alert-green';
+      } else if (annInc <= 120000) {
+        var effRate = (tax_total * 12 / annInc * 100).toFixed(1);
+        bracket = 'Dochód roczny <strong>' + fmt(annInc) + '</strong> — <strong>próg 12%</strong>. Efektywna stawka: ok. ' + effRate + '%.';
+        bracketColor = 'alert-green';
+      } else {
+        var effRate = (tax_total * 12 / annInc * 100).toFixed(1);
+        bracket = 'Dochód roczny <strong>' + fmt(annInc) + '</strong> — przekracza 120 000 zł. Nadwyżka opodatkowana <strong>32%</strong>. Efektywna stawka: ok. ' + effRate + '%.';
+        bracketColor = 'alert-yellow';
+      }
+      skalaNote = '<div class="alert ' + bracketColor + '" style="margin-bottom:14px;"><span>📊</span><div>' + bracket + '</div></div>';
     }
 
-    function calculate() {
-      var taxMethod = document.getElementById('taxMethod').value;
-      var fixedCosts = parseFloat(document.getElementById('fixedCosts').value) || 0;
-      var numOperationalEmployees = parseFloat(document.getElementById('numOperationalEmployees').value) || 0;
-      var avgHours = parseFloat(document.getElementById('avgHours').value) || 0;
-      var vatRate = parseFloat(document.getElementById('vatRate').value) || 0;
-      var desiredNet = parseFloat(document.getElementById('desiredNet').value) || 0;
+    var narzutValue = revenuePerRG - baseRGCost;
+    var vatLabel = vatRate > 0 ? '+ ' + fmt(vatValue) + ' VAT' : '(bez VAT)';
 
-      if(desiredNet <= 0) {
-        alert("Proszę podać wartość dochodu netto, który chcesz osiągać.");
-        return;
-      }
+    var html = `
+      <div class="result-section">
+        <h2 class="wynik-header">Wynik</h2>
+        ${skalaNote}
 
-      var totalRG = numOperationalEmployees * avgHours;
-      if(totalRG === 0) {
-        alert("Liczba pracowników lub liczba godzin nie może być zerowa.");
-        return;
-      }
-      
-      var baseRGCost = fixedCosts / totalRG; // koszt r‑g przed narzutem
-      var marginPctCalculated = 0;
-      var requiredGrossRevenue = 0;
-      var tax_total = 0;
-      var healthInsurance_total = 0;
-      var revenuePerRG = 0;
-      var taxPerRG = 0;
-      var healthInsurancePerRG = 0;
-      var profitPerRG = desiredNet / totalRG;
-      var grossRGCost = 0;
-      var vatValue = 0;
-      var rentownosc = 0;
+        <div class="wynik-brutto">
+          <div class="wynik-brutto-label">Cena dla klienta (brutto / r‑g)</div>
+          <div class="wynik-brutto-value">${fmtN(grossRGCost)} zł</div>
+        </div>
 
-      if(taxMethod === "liniowy") {
-        // Dla podatku liniowego:
-        var marginPct;
-        var A_case1 = desiredNet / 0.761; // gdy 0.049*A_case1 >= 314.96
-        var candidateMargin1 = (A_case1 / fixedCosts) * 100;
-        if(0.049 * A_case1 >= 314.96) {
-          marginPct = candidateMargin1;
-          healthInsurance_total = 0.049 * A_case1;
-        } else {
-          var A_case2 = (desiredNet + 314.96) / 0.81;
-          marginPct = (A_case2 / fixedCosts) * 100;
-          healthInsurance_total = 314.96;
-        }
-        marginPctCalculated = marginPct;
-        
-        requiredGrossRevenue = fixedCosts * (1 + marginPctCalculated/100);
-        revenuePerRG = requiredGrossRevenue / totalRG;
-        tax_total = 0.19 * (fixedCosts * (marginPctCalculated/100));
-        taxPerRG = tax_total / totalRG;
-        rentownosc = (desiredNet / requiredGrossRevenue) * 100;
-      } else if(taxMethod === "ryczalt") {
-        var rycRate = parseFloat(document.getElementById('rycRate').value) || 0;
-        var rycSalary = parseFloat(document.getElementById('rycSalary').value) || 8482.47;
-        var marginPct;
-        var HI;
-        var candidateA1 = (desiredNet + rycRate*fixedCosts + 0.09*rycSalary) / (1 - rycRate);
-        var candidateMargin1 = (candidateA1 / fixedCosts) * 100;
-        var revenueCandidate1 = fixedCosts * (1 + candidateMargin1/100);
-        if(revenueCandidate1 <= 60000) {
-          marginPct = candidateMargin1;
-          HI = 0.09 * rycSalary;
-        } else {
-          var candidateA2 = (desiredNet + rycRate*fixedCosts + 0.15*rycSalary) / (1 - rycRate);
-          var candidateMargin2 = (candidateA2 / fixedCosts) * 100;
-          var revenueCandidate2 = fixedCosts * (1 + candidateMargin2/100);
-          if(revenueCandidate2 <= 300000) {
-            marginPct = candidateMargin2;
-            HI = 0.15 * rycSalary;
-          } else {
-            var candidateA3 = (desiredNet + rycRate*fixedCosts + 1.80*rycSalary) / (1 - rycRate);
-            marginPct = (candidateA3 / fixedCosts) * 100;
-            HI = 1.80 * rycSalary;
-          }
-        }
-        marginPctCalculated = marginPct;
-        requiredGrossRevenue = fixedCosts * (1 + marginPctCalculated/100);
-        revenuePerRG = requiredGrossRevenue / totalRG;
-        tax_total = rycRate * requiredGrossRevenue;
-        taxPerRG = tax_total / totalRG;
-        healthInsurance_total = HI;
-        rentownosc = (desiredNet / requiredGrossRevenue) * 100;
-      }
-      
-      healthInsurancePerRG = healthInsurance_total / totalRG;
-      grossRGCost = revenuePerRG * (1 + vatRate/100);
-      vatValue = grossRGCost - revenuePerRG;
-      
-      // Sekcja "Podstawowe obliczenia" – zaktualizowane pola
-      var wynikHTML = `
-        <h2>Wynik:</h2>
-        <p>Żeby uzyskać zysk ${desiredNet.toFixed(2)} zł, Twoja firma musi zarobić ${requiredGrossRevenue.toFixed(2)} zł.</p>
-        <h3>🤩Założenia</h3>
-        <p><strong>Liczba roboczogodzin (łącznie):</strong> ${totalRG.toFixed(2)}</p>
-        <p><strong>Koszt roboczogodziny (bez narzutu):</strong> ${baseRGCost.toFixed(2)} zł</p>
-        <p><strong>Koszt roboczogodziny netto (po narzucie):</strong> ${revenuePerRG.toFixed(2)} zł</p>
-        <p><strong>Koszt roboczogodziny brutto (z VAT):</strong> ${grossRGCost.toFixed(2)} zł</p>
-      `;
-      
-      // Sekcja składników przychodu brutto
-      var skladnikiHTML = `
-        <h3>📊 Składniki przychodu brutto /r‑g</h3>
-        <div id="componentsChartSection">
-          <div id="componentsList">
-            <p><span class="color-box" style="background-color:#FF6384;"></span><strong>Koszty działalności:</strong> ${baseRGCost.toFixed(2)} zł</p>
-            <p><span class="color-box" style="background-color:#36A2EB;"></span><strong>Podatek dochodowy:</strong> ${taxPerRG.toFixed(2)} zł</p>
-            <p><span class="color-box" style="background-color:#FFCE56;"></span><strong>Składka zdrowotna:</strong> ${healthInsurancePerRG.toFixed(2)} zł</p>
-            <p><span class="color-box" style="background-color:#4BC0C0;"></span><strong>VAT:</strong> ${vatValue.toFixed(2)} zł</p>
-            <p><span class="color-box" style="background-color:#9966FF;"></span><strong>Zysk:</strong> ${profitPerRG.toFixed(2)} zł</p>
+        <div class="formula-row">
+          <div class="formula-item">
+            <div class="formula-value">${fmt(baseRGCost)}</div>
+            <div class="formula-label">Twoje koszty</div>
           </div>
-          <div id="chartWrapper">
-            <canvas id="pieChart" width="130" height="130"></canvas>
+          <div class="formula-op">+</div>
+          <div class="formula-item formula-item--accent">
+            <div class="formula-value">${fmt(narzutValue)}</div>
+            <div class="formula-label">Wymagany narzut<br>(${marginPct.toFixed(1)}%)</div>
+          </div>
+          <div class="formula-op">=</div>
+          <div class="formula-item">
+            <div class="formula-value">${fmt(revenuePerRG)}</div>
+            <div class="formula-label">Cena netto</div>
+          </div>
+          <div class="formula-op">+</div>
+          <div class="formula-item formula-item--vat">
+            <div class="formula-value">${vatRate > 0 ? fmt(vatValue) : '—'}</div>
+            <div class="formula-label">VAT ${vatRate}%</div>
+          </div>
+          <div class="formula-op">=</div>
+          <div class="formula-item formula-item--brutto">
+            <div class="formula-value">${fmt(grossRGCost)}</div>
+            <div class="formula-label">Cena brutto</div>
           </div>
         </div>
-      `;
-      
-      // Sekcja "Podsumowanie" – z przeniesionym wymaganym narzutem
-      var podsumowanieHTML = `
-        <h3>💰 Podsumowanie</h3>
-        <p><strong>Dochód netto (z każdej roboczogodziny):</strong> ${profitPerRG.toFixed(2)} zł</p>
-        <p><strong>Wymagany narzut (marża):</strong> ${marginPctCalculated.toFixed(2)}%</p>
-        <p><strong>Rentowność firmy:</strong> ${rentownosc.toFixed(2)}%</p>
-      `;
-      
-      document.getElementById("mergedSection").innerHTML = `<div>${wynikHTML}</div><div>${skladnikiHTML}</div><div>${podsumowanieHTML}</div>`;
-      
-      if(pieChart) {
-        pieChart.destroy();
-        pieChart = null;
-      }
-      
-      var pieData = [
-        baseRGCost,
-        taxPerRG,
-        healthInsurancePerRG,
-        vatValue,
-        profitPerRG
-      ];
-      var pieLabels = ["Koszty działalności", "Podatek dochodowy", "Składka zdrowotna", "VAT", "Zysk"];
-      var pieColors = ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF"];
-      
-      var ctx = document.getElementById('pieChart').getContext('2d');
-      pieChart = new Chart(ctx, {
-        type: 'pie',
-        data: {
-          labels: pieLabels,
-          datasets: [{
-            data: pieData,
-            backgroundColor: pieColors
-          }]
-        },
-        options: {
-          plugins: {
-            legend: { display: false }
-          }
-        }
-      });
-    }
-    toggleFields();
-  </script>
 
-  <script>
-    function sendHeightToParent() {
-      const height = document.body.scrollHeight;
-      window.parent.postMessage({ iframeHeight: height }, '*');
-    }
+        <div class="insight-box">
+          <div class="insight-icon">💡</div>
+          <div>
+            Jeśli wykonujesz projekt/pracę dla klienta i spędzasz na niej <strong>10 h</strong>, cena jaką płaci klient powinna wynosić <strong>${fmt(grossRGCost * 10)}</strong> — z czego Twój zysk to <strong style="color:#00a854;">${fmt(profitPerRG * 10)}</strong>.
+          </div>
+        </div>
 
-    window.addEventListener('load', sendHeightToParent);
-    window.addEventListener('resize', sendHeightToParent);
+        <div class="breakeven-box">
+          <div class="breakeven-label">Próg rentowności</div>
+          <div class="breakeven-value">${Math.ceil(fixedCosts / revenuePerRG)} r‑g / miesiąc</div>
+          <div class="breakeven-sub">Musisz sprzedać minimum <strong>${Math.ceil(fixedCosts / revenuePerRG)} roboczogodzin</strong> miesięcznie, żeby pokryć koszty firmy i wyjść na zero. Każda kolejna godzina generuje zysk.</div>
+        </div>
 
-    document.addEventListener('click', function() {
-      setTimeout(sendHeightToParent, 300);
+        <div class="section-title">Składniki kosztów roboczogodziny</div>
+        <div class="comp-layout">
+          <div class="comp-table-wrap">
+            <table class="comp-table">
+              <tr>
+                <td><div class="comp-name"><span class="comp-dot" style="background:${C.costs}"></span>Koszty działalności firmy</div></td>
+                <td>${fmt(baseRGCost)}</td>
+              </tr>
+              <tr>
+                <td><div class="comp-name"><span class="comp-dot" style="background:${C.tax}"></span>Podatek dochodowy</div></td>
+                <td>${fmt(taxPerRG)}</td>
+              </tr>
+              <tr>
+                <td><div class="comp-name"><span class="comp-dot" style="background:${C.health}"></span>Składka zdrowotna</div></td>
+                <td>${fmt(healthPerRG)}</td>
+              </tr>
+              ${vatValue > 0 ? '<tr><td><div class="comp-name"><span class="comp-dot" style="background:' + C.vat + '"></span>VAT (' + vatRate + '%) – przekazujesz do US</div></td><td>' + fmt(vatValue) + '</td></tr>' : ''}
+              <tr>
+                <td><div class="comp-name"><span class="comp-dot" style="background:${C.profit}"></span><strong>Zysk netto (Twoje wynagrodzenie)</strong></div></td>
+                <td><strong style="color:#00a854;">${fmt(profitPerRG)}</strong></td>
+              </tr>
+            </table>
+          </div>
+          <div class="pie-wrap">
+            <canvas id="pieChart"></canvas>
+          </div>
+        </div>
+
+        <p style="margin-top:16px;font-size:0.9rem;color:var(--text-muted);">
+          Rentowność: <strong style="color:var(--text);">${profitability.toFixed(1)}%</strong>
+        </p>
+      </div>
+    `;
+
+    document.getElementById('results').innerHTML = html;
+
+    if (pieChart) { pieChart.destroy(); pieChart = null; }
+    var ctx = document.getElementById('pieChart').getContext('2d');
+    pieChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: pieLabels,
+        datasets: [{ data: pieVals, backgroundColor: pieColors, borderWidth: 1, borderColor: '#fff' }]
+      },
+      options: { plugins: { legend: { display: false } }, responsive: true, maintainAspectRatio: true }
     });
-  </script>
 
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(sendHeight, 300);
+    setTimeout(sendHeight, 700);
+  }
+
+  function sendHeight() {
+    window.parent.postMessage({ iframeHeight: document.body.scrollHeight }, '*');
+  }
+
+  window.addEventListener('load', function() {
+    toggleFields();
+    sendHeight();
+  });
+  window.addEventListener('resize', sendHeight);
+  document.addEventListener('click', function() { setTimeout(sendHeight, 400); });
+</script>
 </body>
 </html>
